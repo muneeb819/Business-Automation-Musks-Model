@@ -72,7 +72,7 @@ async def client(test_db):
 async def auth_client(client):
     register_payload = {
         "email": "test@example.com",
-        "password": "TestPass123!",
+        "password": "Test123!",
         "full_name": "Test User",
     }
     resp = await client.post("/api/v1/auth/register", json=register_payload)
