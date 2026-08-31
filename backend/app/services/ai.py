@@ -64,5 +64,50 @@ class AIService:
         ]
         return await self.generate(messages, temperature)
 
+    async def generate_json(
+        self,
+        prompt: str,
+        system_prompt: str = "You are an expert business development AI system. Always respond with valid JSON only.",
+        temperature: float = 0.2,
+    ) -> Dict[str, Any]:
+        """Generate a structured JSON result, used for scoring/enrichment/proposals."""
+        if self.provider != "openai":
+            raise ValueError(f"Unknown AI provider: {self.provider}")
+
+        if not self.api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY is not configured. Set it to enable real AI generation."
+            )
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "response_format": {"type": "json_object"},
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+            content = data["choices"][0]["message"]["content"]
+
+        try:
+            import json as _json
+
+            return _json.loads(content)
+        except Exception:
+            return {"raw": content}
+
 
 ai_service = AIService()
