@@ -33,7 +33,7 @@ async def seed_default_agents(org_id, db):
             name=name,
             agent_type=atype,
             description=desc,
-            status="idle",
+            status="IDLE",
         )
         db.add(agent)
 

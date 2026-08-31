@@ -4,6 +4,8 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.engine import make_url
+import ssl
 
 from app.main import app
 from app.core.database import Base, get_db
@@ -13,7 +15,25 @@ TEST_DATABASE_URL = os.getenv(
     "postgresql+asyncpg://postgres:postgres@localhost:5432/ai_bd_platform_test",
 )
 
-test_engine = create_async_engine(TEST_DATABASE_URL)
+
+def _create_test_engine():
+    url = make_url(TEST_DATABASE_URL)
+    query = dict(url.query)
+    connect_args = {}
+
+    if query.get("sslmode") in ("require", "verify-ca", "verify-full"):
+        ssl_ctx = ssl.create_default_context()
+        if query.get("sslmode") == "require":
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+        connect_args["ssl"] = ssl_ctx
+
+    url = url.set(query={})
+
+    return create_async_engine(url, connect_args=connect_args)
+
+
+test_engine = _create_test_engine()
 TestSessionLocal = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
 
