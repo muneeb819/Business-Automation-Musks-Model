@@ -92,3 +92,42 @@ This creates:
 - Backend `/health` endpoint for load balancer health checks
 - Prometheus metrics can be added to FastAPI
 - Logs to stdout for cloud log aggregation
+
+## Vercel (Frontend) + Hosted PostgreSQL + Managed Backend Host
+
+The frontend is a Next.js app that Vercel can deploy directly. The Python/FastAPI
+backend (asyncpg + Temporal) is **not** a natural Vercel serverless function, so it
+should run on a Python-friendly host (Railway / Render / Fly.io / a VPS) exposed at a
+public HTTPS URL. Vercel then talks to that URL.
+
+### 1. Deploy the backend
+On Railway/Render/Fly or a VPS, deploy the `backend/` directory with:
+- `DATABASE_URL` → your hosted PostgreSQL (e.g. Neon, Supabase, RDS, Vercel Postgres)
+- `REDIS_URL` → hosted Redis
+- `JWT_SECRET_KEY` → strong random secret
+- `OPENAI_API_KEY` → your real provider key (optional; mock fallback otherwise)
+- `TEMPORAL_HOST` → production Temporal (optional; in-memory backend otherwise)
+
+Then run migrations against the hosted DB:
+```bash
+cd backend
+alembic upgrade head        # apply the initial/post migrations
+python seed.py               # create admin + default org + 11 agents
+```
+
+### 2. Deploy the frontend to Vercel
+A root `vercel.json` already sets `rootDirectory: frontend` (framework: nextjs).
+1. Push the repo to GitHub (already at `muneeb819/Business-Automation-Musks-Model`).
+2. In Vercel: **Import Project → GitHub → select the repo** (`Business-Automation-Musks-Model`).
+3. Vercel will detect `vercel.json` and build `frontend/`. Set these env vars:
+   - `NEXT_PUBLIC_API_URL` → `https://<your-backend-host>/api/v1` (the deployed backend).
+4. Deploy. The dashboard pages now call the live API.
+
+Alternative: if you later host the backend behind the *same* domain as the frontend
+(e.g. a reverse proxy under `/api`), set `BACKEND_URL` to the backend origin and leave
+`NEXT_PUBLIC_API_URL` empty so the browser uses same-origin rewrites.
+
+### Seed / first login
+After `python seed.py`, log in with the admin credentials you set via
+`SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`. The owner membership grants
+`approvals.approve` and all admin permissions.

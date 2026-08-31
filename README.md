@@ -1,6 +1,18 @@
-# AI Business Development Platform
+# Business Automation — Musk's Model
 
 A multi-tenant SaaS platform that operates an AI-powered Business Development department.
+
+> **Repo:** github.com/muneeb819/Business-Automation-Musks-Model
+>
+> **Deployment:** Frontend on **Vercel** (`vercel.json` → `rootDirectory: frontend`);
+> FastAPI backend on a Python-friendly host (Railway/Render/Fly) connected to a hosted
+> **PostgreSQL**. See `docs/DEPLOYMENT.md` for step-by-step.
+
+## Key invariant
+
+The **Outreach Agent is hard-locked the moment a prospect replies**: it sets the lead to
+`HUMAN_HANDOFF`, raises `PermissionError` on any further automated send, and notifies a
+human — enforced in code, not just by prompt.
 
 ## Architecture
 
