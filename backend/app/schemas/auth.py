@@ -1,36 +1,42 @@
-from pydantic import BaseModel, EmailStr
+"""
+Authentication schemas for user registration, login, and token management.
+"""
+
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from uuid import UUID
 
 
 class UserCreate(BaseModel):
-    email: EmailStr
-    password: str
-    full_name: str
+    """Schema for user registration."""
+    email: EmailStr = Field(..., description="User email address")
+    password: str = Field(..., min_length=8, description="User password (min 8 chars)")
+    full_name: str = Field(..., description="User full name")
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+    """Schema for user login."""
+    email: EmailStr = Field(..., description="User email address")
+    password: str = Field(..., description="User password")
 
 
 class UserResponse(BaseModel):
-    id: UUID
-    email: str
-    full_name: str
-    avatar_url: Optional[str] = None
-    is_active: bool
-    created_at: str
+    """Schema for user data in responses."""
+    id: str = Field(..., description="User ID")
+    email: str = Field(..., description="User email")
+    full_name: str = Field(..., description="User full name")
+    is_active: bool = Field(default=True, description="Is user account active")
 
     class Config:
         from_attributes = True
 
 
 class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
+    """Schema for authentication token response."""
+    access_token: str = Field(..., description="JWT access token")
+    refresh_token: str = Field(..., description="JWT refresh token")
+    token_type: str = Field(default="bearer", description="Token type")
 
 
 class TokenRefresh(BaseModel):
-    refresh_token: str
+    """Schema for token refresh request."""
+    refresh_token: str = Field(..., description="Refresh token to exchange for new access token")

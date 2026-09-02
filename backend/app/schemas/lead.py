@@ -1,127 +1,114 @@
-from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+"""
+Lead and company/contact schemas for CRM operations.
+"""
+
+from pydantic import BaseModel, Field
+from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
-from enum import Enum
-
-
-class LeadStatus(str, Enum):
-    NEW = "new"
-    CONTACTED = "contacted"
-    ENGAGED = "engaged"
-    DISQUALIFIED = "disqualified"
-    READY_TO_CLOSE = "ready_to_close"
-    CLOSED_WON = "closed_won"
-    CLOSED_LOST = "closed_lost"
-    HUMAN_HANDOFF = "human_handoff"
-
-
-class LeadSource(str, Enum):
-    HUNTING = "hunting"
-    LINKEDIN_ORGANIC = "linkedin_organic"
-    PAID_AD = "paid_ad"
-    SEO = "seo"
-    REFERRAL = "referral"
-    INBOUND_FORM = "inbound_form"
-    MANUAL_IMPORT = "manual_import"
-    MARKETPLACE = "marketplace"
-
-
-class CompanyCreate(BaseModel):
-    name: str
-    domain: Optional[str] = None
-    industry: Optional[str] = None
-    location: Optional[str] = None
-    country: Optional[str] = None
-    size: Optional[str] = None
-    employee_count: Optional[int] = None
-    description: Optional[str] = None
-    website: Optional[str] = None
-    linkedin_url: Optional[str] = None
-
-
-class CompanyResponse(BaseModel):
-    id: UUID
-    name: str
-    domain: Optional[str] = None
-    industry: Optional[str] = None
-    location: Optional[str] = None
-    website: Optional[str] = None
-    created_at: str
-
-    class Config:
-        from_attributes = True
-
-
-class ContactCreate(BaseModel):
-    company_id: Optional[UUID] = None
-    first_name: str
-    last_name: str
-    title: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    linkedin_url: Optional[str] = None
-    is_decision_maker: bool = False
-
-
-class ContactResponse(BaseModel):
-    id: UUID
-    first_name: str
-    last_name: str
-    title: Optional[str] = None
-    email: Optional[str] = None
-    is_decision_maker: bool
-    is_verified: bool
-    created_at: str
-
-    class Config:
-        from_attributes = True
+from app.models.lead import LeadStatus, LeadSource
 
 
 class LeadCreate(BaseModel):
-    company_id: Optional[UUID] = None
-    contact_id: Optional[UUID] = None
-    campaign_id: Optional[UUID] = None
-    source: LeadSource
-    source_detail: Optional[str] = None
-    source_url: Optional[str] = None
-    personalization_data: Optional[Dict[str, Any]] = {}
-    tags: Optional[List[str]] = []
-    notes: Optional[str] = None
+    """Schema for creating a new lead."""
+    company_id: Optional[UUID] = Field(None, description="Associated company ID")
+    contact_id: Optional[UUID] = Field(None, description="Associated contact ID")
+    campaign_id: Optional[UUID] = Field(None, description="Associated campaign ID")
+    source: LeadSource = Field(..., description="Lead source")
+    source_detail: Optional[str] = Field(None, description="Additional source details")
+    source_url: Optional[str] = Field(None, description="URL where lead was found")
+    personalization_data: Optional[dict] = Field(default_factory=dict, description="Personalization data")
+    tags: Optional[List[str]] = Field(default_factory=list, description="Lead tags")
+    notes: Optional[str] = Field(None, description="Lead notes")
 
 
 class LeadResponse(BaseModel):
-    id: UUID
-    company_id: Optional[UUID] = None
-    contact_id: Optional[UUID] = None
-    source: LeadSource
-    status: LeadStatus
-    fit_score: float
-    lead_score: float
-    outreach_count: int
-    created_at: str
-    last_activity_date: Optional[str] = None
+    """Schema for lead in list responses."""
+    id: UUID = Field(..., description="Lead ID")
+    organization_id: UUID = Field(..., description="Organization ID")
+    status: LeadStatus = Field(..., description="Lead status")
+    fit_score: float = Field(default=0, description="Lead fit score")
+    lead_score: float = Field(default=0, description="Lead score")
+    intent_score: float = Field(default=0, description="Intent score")
+    created_at: datetime = Field(..., description="Creation timestamp")
 
     class Config:
         from_attributes = True
 
 
 class LeadDetailResponse(LeadResponse):
-    company: Optional[CompanyResponse] = None
-    contact: Optional[ContactResponse] = None
-    scoring_explanation: Optional[Dict[str, Any]] = None
-    personalization_data: Optional[Dict[str, Any]] = None
-
-
-class LeadListResponse(BaseModel):
-    leads: List[LeadResponse]
-    total: int
-    page: int
-    page_size: int
+    """Schema for detailed lead response."""
+    company_id: Optional[UUID] = Field(None, description="Associated company ID")
+    contact_id: Optional[UUID] = Field(None, description="Associated contact ID")
+    source: LeadSource = Field(..., description="Lead source")
+    notes: Optional[str] = Field(None, description="Lead notes")
+    tags: List[str] = Field(default_factory=list, description="Lead tags")
+    outreach_count: int = Field(default=0, description="Number of outreach attempts")
+    last_outreach_date: Optional[datetime] = Field(None, description="Last outreach timestamp")
+    personalization_data: dict = Field(default_factory=dict, description="Personalization data")
 
 
 class LeadUpdate(BaseModel):
-    status: Optional[LeadStatus] = None
-    assigned_user_id: Optional[UUID] = None
-    notes: Optional[str] = None
-    tags: Optional[List[str]] = None
+    """Schema for updating a lead."""
+    status: Optional[LeadStatus] = Field(None, description="New status")
+    fit_score: Optional[float] = Field(None, description="Updated fit score")
+    lead_score: Optional[float] = Field(None, description="Updated lead score")
+    intent_score: Optional[float] = Field(None, description="Updated intent score")
+    tags: Optional[List[str]] = Field(None, description="Updated tags")
+    notes: Optional[str] = Field(None, description="Updated notes")
+
+
+class LeadListResponse(BaseModel):
+    """Schema for paginated lead list response."""
+    leads: List[LeadResponse] = Field(..., description="List of leads")
+    total: int = Field(..., description="Total lead count")
+    page: int = Field(..., description="Current page number")
+    page_size: int = Field(..., description="Page size")
+
+
+class CompanyCreate(BaseModel):
+    """Schema for creating a company."""
+    name: str = Field(..., description="Company name")
+    domain: Optional[str] = Field(None, description="Company domain")
+    industry: Optional[str] = Field(None, description="Industry classification")
+    location: Optional[str] = Field(None, description="Company location")
+    website: Optional[str] = Field(None, description="Company website URL")
+    employee_count: Optional[int] = Field(None, description="Number of employees")
+
+
+class CompanyResponse(BaseModel):
+    """Schema for company in responses."""
+    id: UUID = Field(..., description="Company ID")
+    name: str = Field(..., description="Company name")
+    domain: Optional[str] = Field(None, description="Company domain")
+    industry: Optional[str] = Field(None, description="Industry classification")
+    location: Optional[str] = Field(None, description="Company location")
+    website: Optional[str] = Field(None, description="Company website")
+    created_at: datetime = Field(..., description="Creation timestamp")
+
+    class Config:
+        from_attributes = True
+
+
+class ContactCreate(BaseModel):
+    """Schema for creating a contact."""
+    first_name: str = Field(..., description="First name")
+    last_name: str = Field(..., description="Last name")
+    email: Optional[str] = Field(None, description="Email address")
+    title: Optional[str] = Field(None, description="Job title")
+    phone: Optional[str] = Field(None, description="Phone number")
+    company_id: Optional[UUID] = Field(None, description="Associated company ID")
+
+
+class ContactResponse(BaseModel):
+    """Schema for contact in responses."""
+    id: UUID = Field(..., description="Contact ID")
+    first_name: str = Field(..., description="First name")
+    last_name: str = Field(..., description="Last name")
+    email: Optional[str] = Field(None, description="Email address")
+    title: Optional[str] = Field(None, description="Job title")
+    company_id: Optional[UUID] = Field(None, description="Associated company ID")
+    created_at: datetime = Field(..., description="Creation timestamp")
+
+    class Config:
+        from_attributes = True
