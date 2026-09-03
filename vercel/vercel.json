@@ -1,14 +1,15 @@
 {
   "version": 2,
-  "framework": "fastapi",
   "buildCommand": "pip install -r requirements.txt",
   "installCommand": "pip install -r requirements.txt",
   "functions": {
     "api/main.py": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "runtime": "python3.11"
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/main.py" }
+    { "source": "/api/(.*)", "destination": "/api/main.py" },
+    { "source": "/health", "destination": "/api/main.py" }
   ]
 }
