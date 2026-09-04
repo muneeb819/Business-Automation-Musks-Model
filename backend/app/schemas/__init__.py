@@ -24,26 +24,13 @@ from app.schemas.lead import (
 from app.schemas.approval import (
     ApprovalCreate,
     ApprovalResponse,
-    ApprovalActionRequest,
+    ApprovalAction,
 )
 from app.schemas.agent import (
     AgentCreate,
     AgentResponse,
-    AgentStatusUpdate,
-)
-from app.schemas.campaign import (
-    CampaignCreate,
-    CampaignResponse,
-    CampaignUpdate,
-)
-from app.schemas.dashboard import (
-    DashboardOverview,
-    PipelineSummary,
-    RecentActivity,
-)
-from app.schemas.marketing import (
-    MarketingCampaignCreate,
-    MarketingCampaignResponse,
+    AgentHealthScore,
+    AgentRunResponse,
 )
 from app.schemas.outreach import (
     OutreachProposalRequest,
@@ -68,13 +55,11 @@ __all__ = [
     "ContactResponse",
     "ApprovalCreate",
     "ApprovalResponse",
-    "ApprovalActionRequest",
+    "ApprovalAction",
     "AgentCreate",
     "AgentResponse",
-    "AgentStatusUpdate",
-    "CampaignCreate",
-    "CampaignResponse",
-    "CampaignUpdate",
+    "AgentHealthScore",
+    "AgentRunResponse",
     "DashboardOverview",
     "PipelineSummary",
     "RecentActivity",

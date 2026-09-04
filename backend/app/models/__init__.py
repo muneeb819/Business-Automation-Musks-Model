@@ -16,12 +16,12 @@ from app.models.crm import (
     Conversation,
     ConversationMessage,
 )
-from app.models.approval import Approval, ApprovalStatus, ApprovalAction
+from app.models.approval import Approval, ApprovalStatus, ApprovalCategory
 from app.models.agent import Agent, AgentType, AgentStatus
 from app.models.notification import Notification, NotificationType
 from app.models.integration import Integration
-from app.models.knowledge import Knowledge
-from app.models.marketing import MarketingCampaign, PromotionChannel
+from app.models.knowledge import KnowledgeDocument, KnowledgeChunk
+from app.models.marketing import MarketingActivity, Experiment, ExperimentVariant
 from app.models.daily_snapshot import DailySnapshot
 
 __all__ = [
@@ -40,15 +40,17 @@ __all__ = [
     "ConversationMessage",
     "Approval",
     "ApprovalStatus",
-    "ApprovalAction",
+    "ApprovalCategory",
     "Agent",
     "AgentType",
     "AgentStatus",
     "Notification",
     "NotificationType",
     "Integration",
-    "Knowledge",
-    "MarketingCampaign",
-    "PromotionChannel",
+    "KnowledgeDocument",
+    "KnowledgeChunk",
+    "MarketingActivity",
+    "Experiment",
+    "ExperimentVariant",
     "DailySnapshot",
 ]
