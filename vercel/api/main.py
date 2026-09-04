@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Generator
 
 import psycopg
+from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -334,8 +335,8 @@ def create_lead(lead: LeadCreate, db=Depends(get_db), user=Depends(get_current_u
                 "personalization_data, tags, notes, status, fit_score, lead_score, outreach_count, created_at, updated_at) "
                 "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (lead_id, org_id, lead.company_id, lead.contact_id, lead.campaign_id,
-                 lead.source.upper(), lead.source_detail, lead.source_url, lead.personalization_data,
-                 lead.tags, lead.notes, "NEW", 0.0, 0.0, 0, datetime.utcnow(), datetime.utcnow())
+                 lead.source.upper(), lead.source_detail, lead.source_url, Jsonb(lead.personalization_data),
+                 Jsonb(lead.tags), lead.notes, "NEW", 0.0, 0.0, 0, datetime.utcnow(), datetime.utcnow())
             )
             db.commit()
             
