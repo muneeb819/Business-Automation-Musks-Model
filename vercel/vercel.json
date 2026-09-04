@@ -1,15 +1,9 @@
 {
-  "version": 2,
-  "buildCommand": "pip install -r requirements.txt",
-  "installCommand": "pip install -r requirements.txt",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/main.py": {
-      "maxDuration": 30,
-      "runtime": "python3.11"
+      "maxDuration": 60,
+      "excludeFiles": "**/tests/**,**/*.test.py"
     }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/main.py" },
-    { "source": "/health", "destination": "/api/main.py" }
-  ]
+  }
 }

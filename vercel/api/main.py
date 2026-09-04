@@ -8,8 +8,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, List, Generator
 
-import psycopg2
-import psycopg2.pool
+import psycopg
+from psycopg_pool import ConnectionPool
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -31,27 +31,31 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # ─── Database Connection ─────────────────────────────────────────────────
 _db_pool = None
 
+def get_conninfo() -> str:
+    """Build a psycopg3-compatible connection string for Neon."""
+    url = DATABASE_URL
+    if not url:
+        raise RuntimeError("DATABASE_URL environment variable not set")
+    # Convert asyncpg URL to a standard postgres URL
+    if url.startswith("postgresql+asyncpg://"):
+        url = url.replace("postgresql+asyncpg://", "postgresql://")
+    # Neon requires SSL - ensure sslmode=require is present
+    if "sslmode=" not in url:
+        separator = "&" if "?" in url else "?"
+        url = f"{url}{separator}sslmode=require"
+    return url
+
 def get_db_pool():
     """Get or create database pool with proper SSL handling for Neon."""
     global _db_pool
     if _db_pool is None:
-        if not DATABASE_URL:
-            raise RuntimeError("DATABASE_URL environment variable not set")
-        
-        # Convert asyncpg URL to psycopg2 if needed
-        url = DATABASE_URL
-        if url.startswith("postgresql+asyncpg://"):
-            url = url.replace("postgresql+asyncpg://", "postgresql://")
-        
-        # Neon requires SSL - psycopg2 handles this via URL params
-        # Ensure sslmode=require is present
-        if "sslmode=" not in url:
-            separator = "&" if "?" in url else "?"
-            url = f"{url}{separator}sslmode=require"
-        
         try:
-            _db_pool = psycopg2.pool.SimpleConnectionPool(
-                1, 3, url, connect_timeout=10
+            _db_pool = ConnectionPool(
+                get_conninfo(),
+                min_size=0,
+                max_size=3,
+                open=False,
+                kwargs={"connect_timeout": 10},
             )
             logger.info("Database pool created successfully")
         except Exception as e:
@@ -60,17 +64,19 @@ def get_db_pool():
     return _db_pool
 
 def get_db() -> Generator:
-    """Get database connection from pool."""
+    """Get database connection from pool (psycopg3)."""
     pool = get_db_pool()
-    conn = pool.getconn()
-    try:
-        yield conn
-    except Exception as e:
-        logger.error(f"Database error: {e}")
-        conn.rollback()
-        raise
-    finally:
-        pool.putconn(conn)
+    pool.open(wait=False)
+    with pool.connection() as conn:
+        try:
+            yield conn
+        except Exception as e:
+            logger.error(f"Database error: {e}")
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            raise
 
 # ─── Config Validation ───────────────────────────────────────────────────
 if not os.getenv("JWT_SECRET_KEY"):
