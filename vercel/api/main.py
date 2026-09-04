@@ -120,7 +120,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db=Depends(get_d
         row = cur.fetchone()
     if not row:
         raise HTTPException(status_code=401, detail="User not found")
-    return {"id": row[0], "email": row[1], "full_name": row[2], "is_active": row[3]}
+    return {"id": str(row[0]), "email": row[1], "full_name": row[2], "is_active": row[3]}
 
 # ─── Schemas ─────────────────────────────────────────────────────────────
 class UserCreate(BaseModel):
