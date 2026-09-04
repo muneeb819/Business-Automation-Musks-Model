@@ -146,7 +146,7 @@ class LeadCreate(BaseModel):
     company_id: Optional[str] = None
     contact_id: Optional[str] = None
     campaign_id: Optional[str] = None
-    source: str = "manual"
+    source: str = "manual_import"
     source_detail: Optional[str] = None
     source_url: Optional[str] = None
     personalization_data: dict = {}
@@ -287,7 +287,7 @@ def list_leads(
         
         if status:
             where.append("status = %s")
-            params.append(status)
+            params.append(status.upper())
         
         where_sql = " AND ".join(where)
         
@@ -305,7 +305,7 @@ def list_leads(
         leads = [
             LeadResponse(
                 id=str(r[0]), company_id=str(r[1]) if r[1] else None,
-                contact_id=str(r[2]) if r[2] else None, source=r[3], status=r[4],
+                contact_id=str(r[2]) if r[2] else None, source=r[3].lower(), status=r[4].lower(),
                 fit_score=r[5], lead_score=r[6], outreach_count=r[7],
                 created_at=r[8].isoformat() if r[8] else None,
                 last_activity_date=r[9].isoformat() if r[9] else None
@@ -334,8 +334,8 @@ def create_lead(lead: LeadCreate, db=Depends(get_db), user=Depends(get_current_u
                 "personalization_data, tags, notes, status, fit_score, lead_score, outreach_count, created_at, updated_at) "
                 "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (lead_id, org_id, lead.company_id, lead.contact_id, lead.campaign_id,
-                 lead.source, lead.source_detail, lead.source_url, lead.personalization_data,
-                 lead.tags, lead.notes, "new", 0.0, 0.0, 0, datetime.utcnow(), datetime.utcnow())
+                 lead.source.upper(), lead.source_detail, lead.source_url, lead.personalization_data,
+                 lead.tags, lead.notes, "NEW", 0.0, 0.0, 0, datetime.utcnow(), datetime.utcnow())
             )
             db.commit()
             
@@ -347,7 +347,7 @@ def create_lead(lead: LeadCreate, db=Depends(get_db), user=Depends(get_current_u
         
         return LeadResponse(
             id=str(r[0]), company_id=str(r[1]) if r[1] else None,
-            contact_id=str(r[2]) if r[2] else None, source=r[3], status=r[4],
+            contact_id=str(r[2]) if r[2] else None, source=r[3].lower(), status=r[4].lower(),
             fit_score=r[5], lead_score=r[6], outreach_count=r[7],
             created_at=r[8].isoformat() if r[8] else None,
             last_activity_date=r[9].isoformat() if r[9] else None
@@ -363,7 +363,7 @@ def handoff_lead(lead_id: str, db=Depends(get_db), user=Depends(get_current_user
     try:
         with db.cursor() as cur:
             cur.execute(
-                "UPDATE leads SET status = 'human_handoff', handoff_date = %s, assigned_user_id = %s, updated_at = %s "
+                "UPDATE leads SET status = 'HUMAN_HANDOFF', handoff_date = %s, assigned_user_id = %s, updated_at = %s "
                 "WHERE id = %s AND organization_id = (SELECT organization_id FROM memberships WHERE user_id = %s LIMIT 1) "
                 "RETURNING id",
                 (datetime.utcnow(), user["id"], datetime.utcnow(), lead_id, user["id"])
@@ -399,9 +399,9 @@ def list_approvals(db=Depends(get_db), user=Depends(get_current_user)):
         
         return [
             ApprovalResponse(
-                id=str(r[0]), category=r[1], title=r[2], description=r[3],
+                id=str(r[0]), category=r[1].lower(), title=r[2], description=r[3],
                 proposed_fix=r[4], affected_system=r[5], risk_level=r[6],
-                status=r[7], created_at=r[8].isoformat() if r[8] else None,
+                status=r[7].lower(), created_at=r[8].isoformat() if r[8] else None,
                 resolved_at=r[9].isoformat() if r[9] else None
             ) for r in rows
         ]
@@ -424,10 +424,10 @@ def create_approval(approval: ApprovalCreate, db=Depends(get_db), user=Depends(g
                 "INSERT INTO approvals (id, organization_id, requester_id, category, title, description, proposed_fix, "
                 "affected_system, risk_level, expected_impact, evidence, rollback_strategy, status, created_at, updated_at) "
                 "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                (aid, org_id, user["id"], approval.category, approval.title, approval.description,
+                (aid, org_id, user["id"], approval.category.upper(), approval.title, approval.description,
                  approval.proposed_fix, approval.affected_system, approval.risk_level,
                  approval.expected_impact, approval.evidence, approval.rollback_strategy,
-                 "pending", datetime.utcnow(), datetime.utcnow())
+                 "PENDING", datetime.utcnow(), datetime.utcnow())
             )
             db.commit()
             
@@ -438,9 +438,9 @@ def create_approval(approval: ApprovalCreate, db=Depends(get_db), user=Depends(g
             r = cur.fetchone()
         
         return ApprovalResponse(
-            id=str(r[0]), category=r[1], title=r[2], description=r[3],
+            id=str(r[0]), category=r[1].lower(), title=r[2], description=r[3],
             proposed_fix=r[4], affected_system=r[5], risk_level=r[6],
-            status=r[7], created_at=r[8].isoformat() if r[8] else None,
+            status=r[7].lower(), created_at=r[8].isoformat() if r[8] else None,
             resolved_at=r[9].isoformat() if r[9] else None
         )
     except HTTPException:
@@ -461,10 +461,10 @@ def action_approval(approval_id: str, action: ApprovalAction, db=Depends(get_db)
             if action.action not in ("approve", "reject"):
                 raise HTTPException(400, "Invalid action")
             
-            new_status = "approved" if action.action == "approve" else "rejected"
+            new_status = "APPROVED" if action.action == "approve" else "REJECTED"
             cur.execute(
                 "UPDATE approvals SET status = %s, approver_id = %s, approval_notes = %s, resolved_at = %s, updated_at = %s "
-                "WHERE id = %s AND organization_id = %s AND status = 'pending' RETURNING id",
+                "WHERE id = %s AND organization_id = %s AND status = 'PENDING' RETURNING id",
                 (new_status, user["id"], action.notes, datetime.utcnow(), datetime.utcnow(), approval_id, org[0])
             )
             row = cur.fetchone()
@@ -492,11 +492,11 @@ def dashboard_overview(db=Depends(get_db), user=Depends(get_current_user)):
             
             cur.execute("SELECT COUNT(*) FROM leads WHERE organization_id = %s", (org_id,))
             total = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM leads WHERE organization_id = %s AND status = 'human_handoff'", (org_id,))
+            cur.execute("SELECT COUNT(*) FROM leads WHERE organization_id = %s AND status = 'HUMAN_HANDOFF'", (org_id,))
             handoffs = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM leads WHERE organization_id = %s AND status = 'closed_won'", (org_id,))
+            cur.execute("SELECT COUNT(*) FROM leads WHERE organization_id = %s AND status = 'CLOSED_WON'", (org_id,))
             won = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM approvals WHERE organization_id = %s AND status = 'pending'", (org_id,))
+            cur.execute("SELECT COUNT(*) FROM approvals WHERE organization_id = %s AND status = 'PENDING'", (org_id,))
             pending = cur.fetchone()[0]
         
         return {
