@@ -30,6 +30,32 @@ export function isAuthenticated(): boolean {
   return typeof window !== 'undefined' && !!window.localStorage.getItem('access_token');
 }
 
+export async function login(
+  username: string,
+  password: string
+): Promise<{ access_token: string; refresh_token?: string }> {
+  const body = new URLSearchParams({ username, password });
+  const response = await fetch(`${getBaseUrl()}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  if (!response.ok) {
+    let message = `Login failed with status ${response.status}`;
+    try {
+      const data = await response.json();
+      if (data && data.detail) {
+        message =
+          typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+      }
+    } catch {
+      // ignore parse errors
+    }
+    throw new ApiError(response.status, message);
+  }
+  return response.json() as Promise<{ access_token: string; refresh_token?: string }>;
+}
+
 export class ApiError extends Error {
   status: number;
 

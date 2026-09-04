@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { clearTokens } from '../lib/api';
 import {
   LayoutDashboard,
   Users,
@@ -21,6 +22,7 @@ import {
   ScrollText,
   Building,
   Settings,
+  LogOut,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -74,6 +76,12 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  function handleLogout() {
+    clearTokens();
+    router.push('/login');
+  }
 
   const sections: { title: string | null; items: NavItem[] }[] = [];
   let current: NavItem[] = [];
@@ -130,6 +138,15 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
+      <div className="pt-4 border-t border-gray-100">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign out
+        </button>
+      </div>
     </aside>
   );
 }
