@@ -294,6 +294,41 @@ class MarketingPerfResponse(BaseModel):
 class SupervisorCommand(BaseModel):
     command: str
 
+class OrganizationMemberResponse(BaseModel):
+    id: str
+    email: str
+    full_name: Optional[str] = None
+    role: str
+    is_active: bool
+
+class OrganizationResponse(BaseModel):
+    id: str
+    name: str
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    website: Optional[str] = None
+    industry: Optional[str] = None
+    logo_url: Optional[str] = None
+    created_at: Optional[str] = None
+    members: List[OrganizationMemberResponse] = []
+
+class NotificationResponse(BaseModel):
+    id: str
+    type: str
+    reference_type: Optional[str] = None
+    title: str
+    message: Optional[str] = None
+    channel: Optional[str] = None
+    is_read: bool
+    sent_at: Optional[str] = None
+
+class NotificationListResponse(BaseModel):
+    notifications: List[NotificationResponse]
+    unread: int
+    total: int
+    page: int
+    page_size: int
+
 # ─── App ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="AI BD Platform API (Serverless)", version="1.0.0")
 
@@ -916,6 +951,164 @@ def outreach_action(action: str, body: dict, db=Depends(get_db), user=Depends(ge
     except Exception as e:
         logger.error(f"Outreach action error: {e}")
         raise HTTPException(500, f"Outreach action failed: {str(e)}")
+
+# ─── Organization ────────────────────────────────────────────────────────
+@app.get("/api/v1/organization", response_model=OrganizationResponse)
+def get_organization(db=Depends(get_db), user=Depends(get_current_user)):
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT organization_id, role FROM memberships WHERE user_id = %s AND is_active = true LIMIT 1",
+                (user["id"],)
+            )
+            membership = cur.fetchone()
+            if not membership:
+                raise HTTPException(403, "No organization")
+            org_id = membership[0]
+
+            cur.execute(
+                "SELECT id, name, slug, description, website, industry, logo_url, created_at "
+                "FROM organizations WHERE id = %s",
+                (org_id,)
+            )
+            org = cur.fetchone()
+            if not org:
+                raise HTTPException(404, "Organization not found")
+
+            cur.execute(
+                "SELECT u.id, u.email, u.full_name, m.role, m.is_active "
+                "FROM memberships m JOIN users u ON u.id = m.user_id "
+                "WHERE m.organization_id = %s ORDER BY u.full_name, u.email",
+                (org_id,)
+            )
+            members = [
+                OrganizationMemberResponse(
+                    id=str(r[0]), email=r[1], full_name=r[2], role=r[3].lower(),
+                    is_active=bool(r[4])
+                ) for r in cur.fetchall()
+            ]
+
+        return OrganizationResponse(
+            id=str(org[0]), name=org[1], slug=org[2], description=org[3],
+            website=org[4], industry=org[5], logo_url=org[6],
+            created_at=org[7].isoformat() if org[7] else None,
+            members=members
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Organization error: {e}")
+        raise HTTPException(500, f"Failed to get organization: {str(e)}")
+
+# ─── Notifications ───────────────────────────────────────────────────────
+@app.get("/api/v1/notifications", response_model=NotificationListResponse)
+def list_notifications(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    unread_only: bool = Query(False),
+    db=Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT organization_id FROM memberships WHERE user_id = %s LIMIT 1",
+                (user["id"],)
+            )
+            org = cur.fetchone()
+            if not org:
+                raise HTTPException(403, "No organization")
+            org_id = org[0]
+
+            where = ["organization_id = %s"]
+            params = [org_id]
+            if unread_only:
+                where.append("(is_read = false OR is_read IS NULL)")
+            where_sql = " AND ".join(where)
+
+            cur.execute(f"SELECT COUNT(*) FROM notifications WHERE {where_sql}", params)
+            total = cur.fetchone()[0]
+
+            cur.execute(
+                f"SELECT COUNT(*) FROM notifications WHERE organization_id = %s AND (is_read = false OR is_read IS NULL)",
+                (org_id,)
+            )
+            unread = cur.fetchone()[0]
+
+            cur.execute(
+                f"SELECT id, type, reference_type, title, message, channel, is_read, sent_at "
+                f"FROM notifications WHERE {where_sql} ORDER BY sent_at DESC NULLS LAST LIMIT %s OFFSET %s",
+                params + [page_size, (page - 1) * page_size]
+            )
+            rows = cur.fetchall()
+
+        notifications = [
+            NotificationResponse(
+                id=str(r[0]), type=r[1].lower(), reference_type=r[2],
+                title=r[3], message=r[4], channel=r[5] if r[5] else None,
+                is_read=bool(r[6]), sent_at=r[7].isoformat() if r[7] else None
+            ) for r in rows
+        ]
+        return NotificationListResponse(
+            notifications=notifications, unread=unread, total=total,
+            page=page, page_size=page_size
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"List notifications error: {e}")
+        raise HTTPException(500, f"Failed to list notifications: {str(e)}")
+
+@app.post("/api/v1/notifications/{notification_id}/read")
+def mark_notification_read(notification_id: str, db=Depends(get_db), user=Depends(get_current_user)):
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT organization_id FROM memberships WHERE user_id = %s LIMIT 1",
+                (user["id"],)
+            )
+            org = cur.fetchone()
+            if not org:
+                raise HTTPException(403, "No organization")
+            cur.execute(
+                "UPDATE notifications SET is_read = true, read_at = %s "
+                "WHERE id = %s AND organization_id = %s RETURNING id",
+                (datetime.utcnow(), notification_id, org[0])
+            )
+            if not cur.fetchone():
+                raise HTTPException(404, "Notification not found")
+            db.commit()
+        return {"message": "Notification marked as read", "notification_id": notification_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Mark notification read error: {e}")
+        raise HTTPException(500, f"Failed to mark notification: {str(e)}")
+
+@app.post("/api/v1/notifications/read-all")
+def mark_all_notifications_read(db=Depends(get_db), user=Depends(get_current_user)):
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT organization_id FROM memberships WHERE user_id = %s LIMIT 1",
+                (user["id"],)
+            )
+            org = cur.fetchone()
+            if not org:
+                raise HTTPException(403, "No organization")
+            cur.execute(
+                "UPDATE notifications SET is_read = true, read_at = %s "
+                "WHERE organization_id = %s AND (is_read = false OR is_read IS NULL) RETURNING id",
+                (datetime.utcnow(), org[0])
+            )
+            updated = len(cur.fetchall())
+            db.commit()
+        return {"message": f"Marked {updated} notifications as read", "updated": updated}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Mark all notifications read error: {e}")
+        raise HTTPException(500, f"Failed to mark notifications: {str(e)}")
 
 # ─── Supervisor (Mock) ───────────────────────────────────────────────────
 @app.post("/api/v1/supervisor/command")

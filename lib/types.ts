@@ -167,3 +167,42 @@ export interface Activity {
   summary?: string;
   created_at: string;
 }
+
+export interface OrganizationMember {
+  id: string;
+  email: string;
+  full_name?: string | null;
+  role: string;
+  is_active: boolean;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug?: string | null;
+  description?: string | null;
+  website?: string | null;
+  industry?: string | null;
+  logo_url?: string | null;
+  created_at?: string | null;
+  members: OrganizationMember[];
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  reference_type?: string | null;
+  title: string;
+  message?: string | null;
+  channel?: string | null;
+  is_read: boolean;
+  sent_at?: string | null;
+}
+
+export interface NotificationListResponse {
+  notifications: Notification[];
+  unread: number;
+  total: number;
+  page: number;
+  page_size: number;
+}
