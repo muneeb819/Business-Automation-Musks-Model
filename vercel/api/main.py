@@ -58,6 +58,7 @@ def get_db_pool():
                 # Route all queries to the isolated 'ai_bd' schema so the
                 # API never collides with legacy 'public' tables in neondb.
                 conn.execute("SET search_path TO ai_bd, public")
+                conn.commit()
 
             _db_pool = ConnectionPool(
                 get_conninfo(),
