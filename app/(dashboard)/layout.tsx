@@ -38,12 +38,6 @@ export default function DashboardLayout({
         <div className="flex-1 min-w-0">
           <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
             <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <span className="hidden md:flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-yellow-400" />
-                Demo mode
-              </span>
-            </div>
           </header>
           <div className="p-8">{children}</div>
         </div>

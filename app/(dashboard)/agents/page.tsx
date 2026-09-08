@@ -43,7 +43,7 @@ export default function AgentsPage() {
       ) : agents.length === 0 ? (
         <EmptyState
           title="No agents configured"
-          description="Agents will be seeded once the system is provisioned."
+          description="No agents exist yet. They can be added from agent management."
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
