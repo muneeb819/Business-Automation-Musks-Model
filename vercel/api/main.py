@@ -40,6 +40,9 @@ def get_conninfo() -> str:
     # Convert asyncpg URL to a standard postgres URL
     if url.startswith("postgresql+asyncpg://"):
         url = url.replace("postgresql+asyncpg://", "postgresql://")
+    # Use the direct endpoint so session-scoped SET search_path is safe
+    # (Neon's pooled endpoint may leak session state between connections).
+    url = url.replace("-pooler.", ".")
     # Neon requires SSL - ensure sslmode=require is present
     if "sslmode=" not in url:
         separator = "&" if "?" in url else "?"
@@ -51,12 +54,18 @@ def get_db_pool():
     global _db_pool
     if _db_pool is None:
         try:
+            def _configure(conn):
+                # Route all queries to the isolated 'ai_bd' schema so the
+                # API never collides with legacy 'public' tables in neondb.
+                conn.execute("SET search_path TO ai_bd, public")
+
             _db_pool = ConnectionPool(
                 get_conninfo(),
                 min_size=0,
                 max_size=3,
                 open=False,
                 kwargs={"connect_timeout": 10},
+                configure=_configure,
             )
             logger.info("Database pool created successfully")
         except Exception as e:
