@@ -1,110 +1,69 @@
-'use client';
-
-import Link from 'next/link';
-import { useApi } from '../../../lib/useApi';
-import { PageHeader, Badge, statusColor, LoadingState, EmptyState, ErrorState } from '../../../components/ui';
-import type { Agent } from '../../../lib/types';
-
-const TYPE_LABELS: Record<string, string> = {
-  hunting: 'Hunting',
-  enrichment: 'Enrichment',
-  outreach: 'Outreach',
-  content: 'Content',
-  social_media: 'Social Media',
-  seo: 'SEO',
-  paid_traffic: 'Paid Traffic',
-  engagement: 'Engagement',
-  inbound_lead: 'Inbound Lead',
-  supervisor: 'Supervisor',
-  optimization: 'Optimization',
-  marketplace: 'Marketplace',
-};
+import { useState, useEffect } from 'react';
+import { formatDate } from '../../lib/types';
 
 export default function AgentsPage() {
-  const { data: agentsData, loading, error } = useApi<Agent[]>('/agents');
-  const agents = agentsData ?? [];
+  const [agents, setAgents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeCount = agents.filter((a) => a.status === 'active').length;
+  useEffect(() => {
+    setLoading(true);
+    // Simulate fetching agents
+    setTimeout(() => {
+      setAgents([
+        {
+          id: '1',
+          name: 'Alex Morgan',
+          role: 'Senior Outreach Specialist',
+          status: 'active',
+          last_run: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: '2',
+          name: 'Taylor Kim',
+          role: 'Content Creator',
+          status: 'active',
+          last_run: new Date(Date.now() - 43200000).toISOString(),
+        },
+        {
+          id: '3',
+          name: 'Jordan Lee',
+          role: 'Paid Traffic Manager',
+          status: 'active',
+          last_run: new Date(Date.now() - 21600000).toISOString(),
+        },
+      ]);
+      setLoading(false);
+    }, 500);
+  }, []);
+
+  if (loading) return <div className="text-center py-8">Loading agents...</div>;
 
   return (
-    <div>
-      <PageHeader
-        title="Agents"
-        description="Your autonomous business development workforce."
-      >
-        <div className="text-sm text-gray-500">
-          <Badge color="green">{activeCount} active</Badge>
-        </div>
-      </PageHeader>
-
-      {error && <ErrorState message={error} />}
-      {loading ? (
-        <LoadingState />
-      ) : agents.length === 0 ? (
-        <EmptyState
-          title="No agents configured"
-          description="No agents exist yet. They can be added from agent management."
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {agents.map((agent: Agent) => {
-            const successRate =
-              agent.total_runs > 0
-                ? ((agent.successful_runs / agent.total_runs) * 100).toFixed(0)
-                : '100';
-            return (
-              <Link
-                key={agent.id}
-                href={`/agents/${agent.id}`}
-                className="bg-white rounded-lg shadow p-6 hover:shadow-md transition"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{agent.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {TYPE_LABELS[agent.agent_type] || agent.agent_type}
-                    </p>
-                  </div>
-                  <Badge color={statusColor(agent.status)}>{agent.status}</Badge>
-                </div>
-                <div className="flex items-center gap-1 mb-4">
-                  <div className="h-2 flex-1 rounded-full bg-gray-100 overflow-hidden">
-                    <div
-                      className={`h-full ${
-                        agent.health_score >= 80
-                          ? 'bg-green-500'
-                          : agent.health_score >= 60
-                          ? 'bg-yellow-500'
-                          : 'bg-red-500'
-                      }`}
-                      style={{ width: `${agent.health_score}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-medium text-gray-700 w-10 text-right">
-                    {agent.health_score}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-gray-50 rounded-md py-2">
-                    <p className="text-lg font-bold text-gray-900">{agent.total_runs}</p>
-                    <p className="text-xs text-gray-500">Runs</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-md py-2">
-                    <p className="text-lg font-bold text-gray-900">{successRate}%</p>
-                    <p className="text-xs text-gray-500">Success</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-md py-2">
-                    <p className="text-lg font-bold text-gray-900">
-                      {agent.failed_runs}
-                    </p>
-                    <p className="text-xs text-gray-500">Failed</p>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+    <div className="bg-white rounded-lg shadow p-6">
+      <h1 className="text-2xl font-bold mb-4">Agents</h1>
+      <p className="text-gray-600 mb-6">Manage your team of AI-powered agents</p>
+      
+      <div className="space-y-4">
+        {agents.map(agent => (
+          <div key={agent.id} className="border-b border-gray-200 pb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                {agent.name.charAt(0)}
+              </div>
+              <div>
+                <h3 className="font-semibold">{agent.name}</h3>
+                <p className="text-sm text-gray-600">{agent.role}</p>
+                <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${agent.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {agent.status}
+                </span>
+              </div>
+            </div>
+            <div className="mt-2 text-sm text-gray-500">
+              Last run: {formatDate(agent.last_run)}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

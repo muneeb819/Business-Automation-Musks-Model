@@ -1,119 +1,61 @@
-'use client';
-
-import { useState } from 'react';
-import { api } from '../../../lib/api';
-import { useApi } from '../../../lib/useApi';
-import { PageHeader, Badge, statusColor, LoadingState, EmptyState, ErrorState, StatCard, formatDate } from '../../../components/ui';
-import type { LeadListResponse, Lead } from '../../../lib/types';
+import { useState, useEffect } from 'react';
+import { formatDate } from '../../lib/types';
 
 export default function OutreachPage() {
-  const { data, loading, error, refetch } = useApi<LeadListResponse>(
-    '/leads?page=1&page_size=50'
-  );
-  const [busy, setBusy] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [outreach, setOutreach] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Leads that have not yet been handed off and have had at least one outreach
-  const candidates: Lead[] =
-    data?.leads.filter(
-      (l) =>
-        l.status !== 'human_handoff' &&
-        l.status !== 'closed_won' &&
-        l.status !== 'closed_lost' &&
-        l.status !== 'disqualified'
-    ) ?? [];
+  useEffect(() => {
+    setLoading(true);
+    // Simulate fetching outreach messages
+    setTimeout(() => {
+      setOutreach([
+        {
+          id: '1',
+          subject: 'Welcome to our platform',
+          recipient: 'acme@company.com',
+          channel: 'email',
+          status: 'sent',
+          message: 'Thank you for joining our platform!',
+          sent_at: new Date().toISOString(),
+        },
+        {
+          id: '2',
+          subject: 'Your proposal is ready',
+          recipient: 'beta@startup.com',
+          channel: 'email',
+          status: 'sent',
+          message: 'Here is your customized proposal.',
+          sent_at: new Date(Date.now() - 3600000).toISOString(),
+        },
+      ]);
+      setLoading(false);
+    }, 500);
+  }, []);
 
-  const handoffs: Lead[] =
-    data?.leads.filter((l) => l.status === 'human_handoff') ?? [];
-
-  async function run(action: 'check_reply', lead: Lead, hasReply = false) {
-    setBusy(lead.id);
-    setNotice(null);
-    try {
-      const res = await api.post<unknown>(`/outreach/${action}`, {
-        lead_id: lead.id,
-        has_reply: hasReply,
-      });
-      if (hasReply) {
-        setNotice(`Reply detected on ${lead.id.slice(0, 8)}. Human handoff created and automated outreach LOCKED.`);
-      } else {
-        setNotice('Reply check complete. No reply detected — automation continues.');
-      }
-      refetch();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Operation failed';
-      try {
-        const parsed = JSON.parse(msg);
-        setNotice(parsed.message || msg);
-      } catch {
-        setNotice(msg);
-      }
-      refetch();
-    } finally {
-      setBusy(null);
-    }
-  }
+  if (loading) return <div className="text-center py-8">Loading outreach...</div>;
 
   return (
-    <div>
-      <PageHeader
-        title="Outreach"
-        description="Automated first-touch sequences. The moment a prospect replies, the system locks automation and hands off to you."
-      />
-
-      {notice && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-4 text-sm">
-          {notice}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard label="Active Outreach" value={candidates.length} />
-        <StatCard label="Human Handoffs" value={handoffs.length} accent="text-purple-600" />
-        <StatCard label="Total Leads" value={data?.total ?? 0} />
+    <div className="bg-white rounded-lg shadow p-6">
+      <h1 className="text-2xl font-bold mb-4">Outreach</h1>
+      <p className="text-gray-600 mb-6">Manage your outreach efforts and track messages</p>
+      
+      <div className="space-y-4">
+        {outreach.map(outreachItem => (
+          <div key={outreachItem.id} className="border-b border-gray-200 pb-4">
+            <div className="flex items-center gap-4">
+              <span className="w-12 h-12 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-xs font-bold">
+                {outreachItem.channel}
+              </span>
+              <div>
+                <h3 className="font-semibold">{outreachItem.subject}</h3>
+                <p className="text-sm text-gray-600">Sent to {outreachItem.recipient}</p>
+                <span className="text-xs text-gray-500">{formatDate(outreachItem.sent_at)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
-
-      {error && <ErrorState message={error} />}
-      {loading ? (
-        <LoadingState />
-      ) : candidates.length === 0 ? (
-        <EmptyState title="No leads in active outreach" description="Generate and send outreach from the pipeline, or wait for the hunting agent to source leads." />
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lead</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Outreach</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Check Reply</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {candidates.map((lead: Lead) => (
-                <tr key={lead.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{lead.id.slice(0, 8)}</td>
-                  <td className="px-6 py-4">
-                    <Badge color={statusColor(lead.status)}>{lead.status.replace(/_/g, ' ')}</Badge>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{lead.outreach_count}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{lead.lead_score.toFixed(1)}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => run('check_reply', lead, true)}
-                      disabled={busy === lead.id}
-                      className="px-3 py-1 text-xs font-medium rounded-md bg-purple-100 text-purple-800 hover:bg-purple-200 disabled:opacity-40"
-                    >
-                      {busy === lead.id ? 'Checking...' : 'Simulate reply → handoff'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }

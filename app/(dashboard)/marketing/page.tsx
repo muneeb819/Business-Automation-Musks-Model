@@ -1,105 +1,62 @@
-'use client';
-
-import { useApi } from '../../../lib/useApi';
-import { PageHeader, Badge, statusColor, LoadingState, EmptyState, ErrorState, StatCard, formatDate } from '../../../components/ui';
-
-interface MarketingPerf {
-  total_views: number;
-  total_clicks: number;
-  total_leads_attributed: number;
-  total_spend: number;
-  click_rate: number;
-  cost_per_lead: number;
-  activity_count: number;
-}
-
-interface MarketingActivity {
-  id: string;
-  agent_type: string;
-  platform: string;
-  content_type: string;
-  title: string;
-  views: number;
-  engagement_rate: number;
-  clicks: number;
-  leads_attributed: number;
-  spend: number;
-  status: string;
-  created_at: string;
-}
-
-interface MarketingList {
-  activities: MarketingActivity[];
-  total: number;
-  page: number;
-  page_size: number;
-}
+import { useState, useEffect } from 'react';
+import { formatDate } from '../../lib/types';
 
 export default function MarketingPage() {
-  const { data: perf } = useApi<MarketingPerf>('/marketing/performance');
-  const { data: list } = useApi<MarketingList>('/marketing');
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    // Simulate fetching campaigns
+    setTimeout(() => {
+      setCampaigns([
+        {
+          id: '1',
+          name: 'Summer Campaign',
+          channel: 'email',
+          status: 'running',
+          budget: 5000,
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: '2',
+          name: 'Q4 Lead Gen',
+          channel: 'linkedin',
+          status: 'planned',
+          budget: 3000,
+          created_at: new Date(Date.now() - 172800000).toISOString(),
+        },
+      ]);
+      setLoading(false);
+    }, 500);
+  }, []);
+
+  if (loading) return <div className="text-center py-8">Loading marketing...</div>;
 
   return (
-    <div>
-      <PageHeader
-        title="Marketing"
-        description="Inbound funnel performance across content, social, SEO, and paid campaigns."
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard label="Total Views" value={perf?.total_views ?? 0} />
-        <StatCard label="Total Clicks" value={perf?.total_clicks ?? 0} />
-        <StatCard label="Leads Attributed" value={perf?.total_leads_attributed ?? 0} />
-        <StatCard label="Total Spend" value={perf ? `$${perf.total_spend}` : 0} />
+    <div className="bg-white rounded-lg shadow p-6">
+      <h1 className="text-2xl font-bold mb-4">Marketing</h1>
+      <p className="text-gray-600 mb-6">Manage your marketing initiatives and campaigns</p>
+      
+      <div className="space-y-4">
+        {campaigns.map(campaign => (
+          <div key={campaign.id} className="border-b border-gray-200 pb-4">
+            <div className="flex items-center gap-4">
+              <span className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
+                {campaign.name.charAt(0)}
+              </span>
+              <div>
+                <h3 className="font-semibold">{campaign.name}</h3>
+                <p className="text-sm text-gray-600">{campaign.channel}</p>
+                <span className="text-xs text-gray-500">{campaign.status}</span>
+              </div>
+            </div>
+            <div className="mt-2 text-sm text-gray-500">
+              Budget: ${campaign.budget}
+            </div>
+          </div>
+        ))}
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-sm font-medium text-gray-500">Click Rate</p>
-          <p className="text-3xl font-bold text-gray-900">{perf?.click_rate ?? 0}%</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-sm font-medium text-gray-500">Cost per Lead</p>
-          <p className="text-3xl font-bold text-gray-900">
-            {perf ? `$${perf.cost_per_lead}` : 0}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-sm font-medium text-gray-500">Activities</p>
-          <p className="text-3xl font-bold text-gray-900">{perf?.activity_count ?? 0}</p>
-        </div>
-      </div>
-
-      {!list || (list && list.activities.length === 0) ? (
-        <EmptyState title="No marketing activity" description="Marketing agents will publish content and campaigns here." />
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Platform</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Views</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Leads</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {list.activities.map((a: MarketingActivity) => (
-                <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{a.title}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{a.platform}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{a.views ?? 0}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{a.leads_attributed ?? 0}</td>
-                  <td className="px-6 py-4"><Badge color={statusColor(a.status)}>{a.status}</Badge></td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{formatDate(a.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }
