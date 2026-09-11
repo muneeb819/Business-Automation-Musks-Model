@@ -1,4 +1,7 @@
+from typing import Any, Dict, List
+
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.deps import get_current_active_membership
@@ -10,12 +13,17 @@ from app.agents.registry import AgentRegistry
 router = APIRouter()
 
 
+class DetectDemandRequest(BaseModel):
+    demands: List[Dict[str, Any]]
+
+
 @router.post("/detect-demand")
 async def detect_demand(
-    demands: list[dict],
+    request: DetectDemandRequest,
     membership: Membership = Depends(get_current_active_membership),
     db: AsyncSession = Depends(get_db),
 ):
+    demands = request.demands
     result = await db.execute(
         select(Agent).where(
             Agent.organization_id == membership.organization_id,

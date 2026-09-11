@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import timedelta
+from uuid import UUID
 from app.core.database import get_db
 from app.core.security import (
     verify_password,
@@ -15,7 +16,6 @@ from app.models.user import User
 from app.models.organization import Membership, Organization
 from app.schemas.auth import (
     UserCreate,
-    UserLogin,
     UserResponse,
     TokenResponse,
     TokenRefresh,
@@ -25,6 +25,37 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _extract_credentials(request: Request):
+    """Extract (email, password) from either a JSON or form-encoded body.
+
+    The frontend sends ``application/x-www-form-urlencoded`` (OAuth2 style,
+    with ``username``/``password`` fields), while API clients may send a JSON
+    body with ``email``/``password``. Both are supported.
+    """
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid JSON body",
+            )
+        email = body.get("email")
+        password = body.get("password")
+    else:
+        form = await request.form()
+        email = form.get("username") or form.get("email")
+        password = form.get("password")
+
+    if not email or not password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="email and password are required",
+        )
+    return str(email), str(password)
 
 
 @router.post("/register", response_model=TokenResponse)
@@ -108,13 +139,18 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
-    """Authenticate user and return tokens."""
+async def login(request: Request, db: AsyncSession = Depends(get_db)):
+    """Authenticate user and return tokens.
+
+    Accepts both JSON (``{"email": ..., "password": ...}``) and
+    form-encoded (``username``/``password``) request bodies.
+    """
+    email, password = await _extract_credentials(request)
     try:
-        result = await db.execute(select(User).where(User.email == credentials.email))
+        result = await db.execute(select(User).where(User.email == email))
         user = result.scalar_one_or_none()
 
-        if not user or not verify_password(credentials.password, user.hashed_password):
+        if not user or not verify_password(password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password",
@@ -156,7 +192,14 @@ async def refresh_token(token_data: TokenRefresh, db: AsyncSession = Depends(get
             )
 
         user_id = payload.get("sub")
-        result = await db.execute(select(User).where(User.id == user_id))
+        try:
+            user_uuid = UUID(str(user_id))
+        except (ValueError, TypeError, AttributeError):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token",
+            )
+        result = await db.execute(select(User).where(User.id == user_uuid))
         user = result.scalar_one_or_none()
 
         if not user or not user.is_active:

@@ -206,3 +206,45 @@ export interface NotificationListResponse {
   page: number;
   page_size: number;
 }
+
+export interface Company {
+  id: string;
+  name: string;
+  domain?: string | null;
+  industry?: string | null;
+  location?: string | null;
+  website?: string | null;
+  created_at: string;
+}
+
+export interface MarketingActivity {
+  id: string;
+  agent_type: string;
+  platform?: string | null;
+  content_type?: string | null;
+  title?: string | null;
+  views: number;
+  engagement_rate: number;
+  clicks: number;
+  leads_attributed: number;
+  spend: number;
+  status?: string | null;
+  created_at?: string | null;
+}
+
+export interface MarketingListResponse {
+  activities: MarketingActivity[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface MarketingPerformance {
+  total_views: number;
+  total_clicks: number;
+  total_leads_attributed: number;
+  total_spend: number;
+  click_rate: number;
+  cost_per_lead: number;
+  activity_count: number;
+}

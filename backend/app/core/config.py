@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "AI Business Development Platform"
     VERSION: str = "1.0.0"
     API_V1_PREFIX: str = "/api/v1"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
 
     # Database
@@ -39,6 +40,8 @@ class Settings(BaseSettings):
     TEMPORAL_HOST: str = os.getenv("TEMPORAL_HOST", "localhost:7233")
 
     # CORS
+    # Comma-separated list of allowed origins. Add your production frontend
+    # origin(s) here, e.g. https://your-app.vercel.app
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:8000",
@@ -48,11 +51,20 @@ class Settings(BaseSettings):
         """Initialize settings and validate required fields."""
         super().__init__(**data)
 
-        # Generate random JWT secret for development if not provided
+        # Override CORS origins from a comma-separated env var when provided.
+        env_cors = os.getenv("CORS_ORIGINS")
+        if env_cors:
+            self.CORS_ORIGINS = [
+                origin.strip() for origin in env_cors.split(",") if origin.strip()
+            ]
+
+        # Generate a random JWT secret for development/testing if not provided.
+        # Production environments must always set JWT_SECRET_KEY explicitly.
         if not self.JWT_SECRET_KEY:
-            if not self.DEBUG:
+            if self.ENVIRONMENT.lower() == "production":
                 raise ValueError(
-                    "JWT_SECRET_KEY must be set in production! Set the JWT_SECRET_KEY environment variable."
+                    "JWT_SECRET_KEY must be set in production! "
+                    "Set the JWT_SECRET_KEY environment variable."
                 )
             # Generate a secure random key for development
             self.JWT_SECRET_KEY = secrets.token_urlsafe(32)

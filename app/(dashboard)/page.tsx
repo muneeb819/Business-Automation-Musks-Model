@@ -46,10 +46,13 @@ export default function OverviewPage() {
     try {
       const { ApiError } = await import('../../lib/api');
       const api = (await import('../../lib/api')).default;
-      const res = await api.post<{ response: string }>('/supervisor/command', {
-        command: query,
-      });
-      setSupervisorAnswer(res.response || 'Supervisor acknowledged.');
+      const res = await api.post<{ answer?: string; response?: string }>(
+        '/supervisor/query',
+        { question: query }
+      );
+      setSupervisorAnswer(
+        res.answer || res.response || 'Supervisor acknowledged.'
+      );
     } catch (e) {
       setSupervisorAnswer(
         e instanceof Error ? e.message : 'Unable to reach Supervisor.'
@@ -97,15 +100,7 @@ export default function OverviewPage() {
           ) : (
             <div className="space-y-3">
               {PIPELINE_LABELS.map(({ key, label }) => {
-                const value =
-                  key === 'new' ||
-                  key === 'contacted' ||
-                  key === 'engaged' ||
-                  key === 'ready_to_close'
-                    ? (overview?.leads as Record<string, number> | undefined)?.[
-                        key
-                      ]
-                    : pipeline?.[key as LeadStatus];
+                const value = pipeline?.[key as LeadStatus];
                 return (
                   <div key={key} className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">{label}</span>

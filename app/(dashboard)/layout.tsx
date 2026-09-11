@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from '../../components/Sidebar';
-import { usePathname } from 'next/navigation';
-import { AlertTriangle, Database, Plug, RefreshCw } from 'lucide-react';
+import { isAuthenticated } from '../../lib/api';
 
 export default function DashboardLayout({
   children,
@@ -10,6 +11,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace('/login');
+    }
+  }, [pathname, router]);
   const pageTitles: Record<string, string> = {
     '/': 'Dashboard Overview',
     '/leads': 'Leads',

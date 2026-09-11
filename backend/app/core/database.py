@@ -25,13 +25,18 @@ def _create_engine():
     # Remove query params so URL is clean for asyncpg
     url = url.set(query={})
 
-    return create_async_engine(
-        url,
-        echo=settings.DATABASE_ECHO,
-        pool_size=20,
-        max_overflow=10,
-        connect_args=connect_args,
-    )
+    engine_kwargs: dict = {
+        "echo": settings.DATABASE_ECHO,
+        "connect_args": connect_args,
+    }
+
+    # Pool sizing arguments are only valid for dialects that support them
+    # (e.g. PostgreSQL). SQLite uses a NullPool and rejects these options,
+    # which matters for local/test runs against SQLite.
+    if url.get_backend_name() != "sqlite":
+        engine_kwargs.update(pool_size=20, max_overflow=10)
+
+    return create_async_engine(url, **engine_kwargs)
 
 
 engine = _create_engine()

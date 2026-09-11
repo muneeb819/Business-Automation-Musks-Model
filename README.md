@@ -3,7 +3,7 @@
 A multi-tenant SaaS platform that operates an AI-powered Business Development department.
 
 > **Repo:** github.com/muneeb819/Business-Automation-Musks-Model
-> **Deployment:** Frontend on **Vercel** (`vercel.json` → `rootDirectory: frontend`); FastAPI backend on a Python-friendly host (Railway/Render/Fly) connected to a hosted PostgreSQL.
+> **Deployment:** Frontend on **Vercel** (root `vercel.json`, Next.js app lives at the repo root); FastAPI backend on a Python-friendly host (Railway/Render/Fly) connected to a hosted PostgreSQL. A serverless FastAPI subset also ships in `vercel/`.
 
 ## Key invariant
 
@@ -53,7 +53,7 @@ The **Outreach Agent** is hard-locked the moment a prospect replies: it sets the
 
 ```bash
 # Clone the repository
-cd ai-bd-platform
+cd Business-Automation-Musks-Model
 
 # Start all services
 docker-compose up -d
@@ -80,7 +80,7 @@ uvicorn app.main:app --reload
 #### Frontend
 
 ```bash
-cd frontend
+# The Next.js frontend lives at the repository root.
 npm install
 npm run dev
 ```

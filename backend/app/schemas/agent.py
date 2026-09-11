@@ -2,30 +2,8 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from uuid import UUID
 from datetime import datetime
-from enum import Enum
 
-
-class AgentType(str, Enum):
-    HUNTING = "hunting"
-    ENRICHMENT = "enrichment"
-    OUTREACH = "outreach"
-    CONTENT = "content"
-    SOCIAL_MEDIA = "social_media"
-    SEO = "seo"
-    PAID_TRAFFIC = "paid_traffic"
-    ENGAGEMENT = "engagement"
-    INBOUND_LEAD = "inbound_lead"
-    SUPERVISOR = "supervisor"
-    OPTIMIZATION = "optimization"
-    MARKETPLACE = "marketplace"
-
-
-class AgentStatus(str, Enum):
-    ACTIVE = "active"
-    IDLE = "idle"
-    PAUSED = "paused"
-    FAILED = "failed"
-    MAINTENANCE = "maintenance"
+from app.models.agent import AgentType, AgentStatus
 
 
 class AgentCreate(BaseModel):
@@ -46,8 +24,8 @@ class AgentResponse(BaseModel):
     total_runs: int
     successful_runs: int
     failed_runs: int
-    last_run_at: Optional[str] = None
-    created_at: str
+    last_run_at: Optional[datetime] = None
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -77,8 +55,8 @@ class AgentRunResponse(BaseModel):
     tokens_used: int
     cost: float
     duration_ms: Optional[int] = None
-    started_at: str
-    completed_at: Optional[str] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

@@ -1,64 +1,74 @@
-import { useState, useEffect } from 'react';
-import { formatDate } from '../../lib/types';
+'use client';
+
+import { useApi } from '../../../lib/useApi';
+import {
+  PageHeader,
+  Badge,
+  LoadingState,
+  ErrorState,
+} from '../../../components/ui';
+
+const STAGES: { key: string; label: string; color: 'blue' | 'yellow' | 'green' | 'red' | 'purple' | 'gray' }[] = [
+  { key: 'new', label: 'New', color: 'blue' },
+  { key: 'contacted', label: 'Contacted', color: 'yellow' },
+  { key: 'engaged', label: 'Engaged', color: 'green' },
+  { key: 'ready_to_close', label: 'Ready to Close', color: 'green' },
+  { key: 'human_handoff', label: 'Human Handoff', color: 'purple' },
+  { key: 'closed_won', label: 'Closed Won', color: 'green' },
+  { key: 'closed_lost', label: 'Closed Lost', color: 'red' },
+  { key: 'disqualified', label: 'Disqualified', color: 'gray' },
+];
 
 export default function PipelinePage() {
-  const [pipeline_stages, setPipelineStages] = useState({
-    discovery: 'Discovery',
-    normalization: 'Normalisation',
-    deduplication: 'Deduplication',
-    enrichment: 'Enrichment',
-    verification: 'Verification',
-    scoring: 'Scoring',
-    approval: 'Approval',
-    outreach: 'Outreach',
-  });
-  const [stage, setStage] = useState(pipeline_stages.discovery);
-  const [progress, setProgress] = useState(0);
+  const { data: pipeline, loading, error } = useApi<Record<string, number>>(
+    '/dashboard/pipeline'
+  );
 
-  useEffect(() => {
-    // Simulate pipeline progression
-    const interval = setInterval(() => {
-      setProgress(prev => Math.min(prev + 5, 100));
-      if (progress >= 100) {
-        setStage('completed');
-        setProgress(100);
-      }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [progress]);
+  const total = pipeline
+    ? Object.values(pipeline).reduce((sum, n) => sum + (n || 0), 0)
+    : 0;
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h1 className="text-2xl font-bold mb-4">Pipeline</h1>
-      <p className="text-gray-600 mb-6">Track your lead intelligence pipeline through each stage</p>
-      
-      <div className="flex items-center gap-2 mb-6">
-        <span className="text-2xl font-bold">{progress}%</span>
-        <select 
-          value={stage} 
-          onChange={(e) => setStage(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-1 outline-none"
-        >
-          <option value="discovery">Discovery</option>
-          <option value="normalisation">Normalisation</option>
-          <option value="deduplication">Deduplication</option>
-          <option value="enrichment">Enrichment</option>
-          <option value="verification">Verification</option>
-          <option value="scoring">Scoring</option>
-          <option value="approval">Approval</option>
-          <option value="outreach">Outreach</option>
-          <option value="completed">Completed</option>
-        </select>
-      </div>
+    <div>
+      <PageHeader
+        title="Pipeline"
+        description="Lead volume across every stage of the outbound + inbound funnel."
+      />
 
-      <div className="space-y-4">
-        {Object.entries(pipeline_stages).map(([key, value]) => (
-          <div key={key} className="flex items-center justify-between py-3 border-b border-gray-100">
-            <span className="text-gray-600">{key}: {value}</span>
-            <span className="text-sm text-gray-500">{progress}%</span>
+      {error && <ErrorState message={error} />}
+
+      {loading ? (
+        <LoadingState />
+      ) : (
+        <div className="space-y-4">
+          <div className="bg-white rounded-lg shadow p-6">
+            <p className="text-sm font-medium text-gray-500">Total leads in pipeline</p>
+            <p className="text-3xl font-bold text-gray-900">{total}</p>
           </div>
-        ))}
-      </div>
+
+          <div className="bg-white rounded-lg shadow divide-y divide-gray-100">
+            {STAGES.map((stage) => {
+              const count = pipeline?.[stage.key] ?? 0;
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+              return (
+                <div key={stage.key} className="px-6 py-4 flex items-center gap-4">
+                  <Badge color={stage.color}>{stage.label}</Badge>
+                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary-500 rounded-full"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="w-40 text-right">
+                    <span className="text-sm font-semibold text-gray-900">{count}</span>
+                    <span className="text-sm text-gray-400 ml-2">({pct}%)</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

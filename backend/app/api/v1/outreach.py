@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from datetime import datetime, timezone
+from datetime import datetime
 from app.core.database import get_db
 from app.core.deps import get_current_active_membership
 from app.models.organization import Membership
@@ -223,10 +223,10 @@ async def check_reply(
             if lead:
                 # CRITICAL: Set lead to HUMAN_HANDOFF - HARD LOCK
                 lead.status = LeadStatus.HUMAN_HANDOFF
-                lead.response_date = datetime.now(timezone.utc)
-                lead.handoff_date = datetime.now(timezone.utc)
+                lead.response_date = datetime.utcnow()
+                lead.handoff_date = datetime.utcnow()
                 lead.assigned_user_id = membership.user_id
-                lead.updated_at = datetime.now(timezone.utc)
+                lead.updated_at = datetime.utcnow()
                 await db.flush()
                 logger.info(
                     f"Lead {request.lead_id} set to HUMAN_HANDOFF - Outreach Agent LOCKED"

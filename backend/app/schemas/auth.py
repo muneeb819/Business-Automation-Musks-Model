@@ -4,12 +4,13 @@ Authentication schemas for user registration, login, and token management.
 
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
+from uuid import UUID
 
 
 class UserCreate(BaseModel):
     """Schema for user registration."""
     email: EmailStr = Field(..., description="User email address")
-    password: str = Field(..., min_length=8, description="User password (min 8 chars)")
+    password: str = Field(..., min_length=8, max_length=72, description="User password (8-72 chars)")
     full_name: str = Field(..., description="User full name")
 
 
@@ -21,7 +22,7 @@ class UserLogin(BaseModel):
 
 class UserResponse(BaseModel):
     """Schema for user data in responses."""
-    id: str = Field(..., description="User ID")
+    id: UUID = Field(..., description="User ID")
     email: str = Field(..., description="User email")
     full_name: str = Field(..., description="User full name")
     is_active: bool = Field(default=True, description="Is user account active")

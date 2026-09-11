@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
@@ -19,7 +21,7 @@ class OrganizationResponse(BaseModel):
     website: Optional[str] = None
     industry: Optional[str] = None
     is_active: bool
-    created_at: str
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

@@ -4,7 +4,7 @@ import pytest
 class TestApprovalAPI:
     @pytest.mark.asyncio
     async def test_create_approval(self, auth_client):
-        resp = await auth_client.post("/api/v1/approvals/", json={
+        resp = await auth_client.post("/api/v1/approvals", json={
             "category": "bug_fix",
             "title": "Fix outreach template typo",
             "description": "Found a typo in the outreach email template",
@@ -19,13 +19,13 @@ class TestApprovalAPI:
 
     @pytest.mark.asyncio
     async def test_list_pending_approvals(self, auth_client):
-        resp = await auth_client.get("/api/v1/approvals/")
+        resp = await auth_client.get("/api/v1/approvals")
         assert resp.status_code == 200
         assert "approvals" in resp.json()
 
     @pytest.mark.asyncio
     async def test_approve_approval(self, auth_client):
-        create_resp = await auth_client.post("/api/v1/approvals/", json={
+        create_resp = await auth_client.post("/api/v1/approvals", json={
             "category": "ui_ux",
             "title": "Improve dashboard layout",
             "description": "Dashboard layout could be more responsive",
@@ -44,7 +44,7 @@ class TestApprovalAPI:
 
     @pytest.mark.asyncio
     async def test_reject_approval(self, auth_client):
-        create_resp = await auth_client.post("/api/v1/approvals/", json={
+        create_resp = await auth_client.post("/api/v1/approvals", json={
             "category": "other",
             "title": "Reject this",
             "description": "Not needed",
