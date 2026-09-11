@@ -7,33 +7,34 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.core.database import async_session_factory, init_db
 from app.models.user import User
 from app.models.organization import Organization, Membership
-from app.models.agent import Agent, AgentType
+from app.models.agent import Agent, AgentStatus, AgentType
 from app.core.security import get_password_hash
 import uuid
 
 
-async def seed_default_agents(org_id, db):
-    default_agents = [
-        ("Lead Hunter", AgentType.HUNTING, "Discovers leads across platforms"),
-        ("Enrichment Agent", AgentType.ENRICHMENT, "Enriches and verifies leads"),
-        ("Outreach Agent", AgentType.OUTREACH, "Sends personalized proposals with human handoff"),
-        ("Supervisor Agent", AgentType.SUPERVISOR, "Control tower - monitors all operations"),
-        ("Optimization Agent", AgentType.OPTIMIZATION, "Identifies improvement opportunities"),
-        ("Content Agent", AgentType.CONTENT, "Creates marketing content"),
-        ("SEO Agent", AgentType.SEO, "Optimizes search visibility"),
-        ("Paid Traffic Agent", AgentType.PAID_TRAFFIC, "Manages paid campaigns"),
-        ("Social Media Agent", AgentType.SOCIAL_MEDIA, "Manages social presence"),
-        ("Engagement Agent", AgentType.ENGAGEMENT, "Monitors engagement"),
-        ("Marketplace Agent", AgentType.MARKETPLACE, "Detects buyer/renter demand"),
-    ]
+DEFAULT_AGENTS = [
+    ("Lead Hunter", AgentType.HUNTING, "Discovers leads across platforms"),
+    ("Enrichment Agent", AgentType.ENRICHMENT, "Enriches and verifies leads"),
+    ("Outreach Agent", AgentType.OUTREACH, "Sends personalized proposals with human handoff"),
+    ("Supervisor Agent", AgentType.SUPERVISOR, "Control tower - monitors all operations"),
+    ("Optimization Agent", AgentType.OPTIMIZATION, "Identifies improvement opportunities"),
+    ("Content Agent", AgentType.CONTENT, "Creates marketing content"),
+    ("SEO Agent", AgentType.SEO, "Optimizes search visibility"),
+    ("Paid Traffic Agent", AgentType.PAID_TRAFFIC, "Manages paid campaigns"),
+    ("Social Media Agent", AgentType.SOCIAL_MEDIA, "Manages social presence"),
+    ("Engagement Agent", AgentType.ENGAGEMENT, "Monitors engagement"),
+    ("Marketplace Agent", AgentType.MARKETPLACE, "Detects buyer/renter demand"),
+]
 
-    for name, atype, desc in default_agents:
+
+async def seed_default_agents(org_id, db):
+    for name, atype, desc in DEFAULT_AGENTS:
         agent = Agent(
             organization_id=org_id,
             name=name,
             agent_type=atype,
             description=desc,
-            status="IDLE",
+            status=AgentStatus.IDLE,
         )
         db.add(agent)
 
@@ -94,10 +95,7 @@ async def main():
         await db.commit()
         print(f"Seeded admin user: {email}")
         print(f"Seeded organization: {org.name}")
-        print(f"Seeded {len([
-            'Lead Hunter','Enrichment Agent','Outreach Agent','Supervisor Agent',
-            'Optimization Agent','Content Agent','SEO Agent','Paid Traffic Agent',
-            'Social Media Agent','Engagement Agent','Marketplace Agent'])} default agents")
+        print(f"Seeded {len(DEFAULT_AGENTS)} default agents")
 
 
 if __name__ == "__main__":

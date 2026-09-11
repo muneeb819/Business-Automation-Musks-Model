@@ -61,13 +61,9 @@ jobs:
         with:
           node-version: '18'
       - name: Install dependencies
-        run: |
-          cd frontend
-          npm install
+        run: npm install
       - name: Build
-        run: |
-          cd frontend
-          npm run build
+        run: npm run build
 
   security-scan:
     runs-on: ubuntu-latest

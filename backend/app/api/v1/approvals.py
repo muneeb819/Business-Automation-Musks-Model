@@ -19,7 +19,7 @@ from app.schemas.approval import (
 router = APIRouter()
 
 
-@router.get("/", response_model=ApprovalListResponse)
+@router.get("", response_model=ApprovalListResponse)
 async def list_approvals(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -69,7 +69,7 @@ async def get_approval(
     return approval
 
 
-@router.post("/", response_model=ApprovalResponse)
+@router.post("", response_model=ApprovalResponse)
 async def create_approval(
     approval_data: ApprovalCreate,
     membership: Membership = Depends(get_current_active_membership),

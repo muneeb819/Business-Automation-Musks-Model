@@ -26,3 +26,8 @@ Thumbs.db
 
 .vercel
 .env*
+
+# Local SQLite dev/test databases
+*.db
+*.sqlite
+*.sqlite3

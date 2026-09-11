@@ -13,7 +13,7 @@ from app.schemas.lead import CompanyCreate, CompanyResponse
 router = APIRouter()
 
 
-@router.get("/", response_model=list[CompanyResponse])
+@router.get("", response_model=list[CompanyResponse])
 async def list_companies(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -52,7 +52,7 @@ async def get_company(
     return company
 
 
-@router.post("/", response_model=CompanyResponse)
+@router.post("", response_model=CompanyResponse)
 async def create_company(
     company_data: CompanyCreate,
     membership: Membership = Depends(get_current_active_membership),

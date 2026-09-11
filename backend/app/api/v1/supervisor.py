@@ -48,7 +48,9 @@ async def supervisor_query(
         config=agent.config,
     )
 
-    return await supervisor.execute({"action": "query", "question": request.question})
+    return await supervisor.execute(
+        {"action": "query", "question": request.question}, db
+    )
 
 
 @router.post("/command")
@@ -81,7 +83,7 @@ async def supervisor_command(
         "command": request.command,
         "is_destructive": request.is_destructive,
         "confirmed": request.confirmed,
-    })
+    }, db)
 
 
 @router.get("/digest")
@@ -108,4 +110,4 @@ async def daily_digest(
         config=agent.config,
     )
 
-    return await supervisor.execute({"action": "daily_digest"})
+    return await supervisor.execute({"action": "daily_digest"}, db)

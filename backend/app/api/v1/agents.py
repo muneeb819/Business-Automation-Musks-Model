@@ -18,7 +18,7 @@ from app.schemas.agent import (
 router = APIRouter()
 
 
-@router.get("/", response_model=list[AgentResponse])
+@router.get("", response_model=list[AgentResponse])
 async def list_agents(
     membership: Membership = Depends(get_current_active_membership),
     db: AsyncSession = Depends(get_db),
@@ -47,7 +47,7 @@ async def get_agent(
     return agent
 
 
-@router.post("/", response_model=AgentResponse)
+@router.post("", response_model=AgentResponse)
 async def create_agent(
     agent_data: AgentCreate,
     membership: Membership = Depends(get_current_active_membership),

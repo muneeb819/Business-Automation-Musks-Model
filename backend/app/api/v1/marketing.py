@@ -11,7 +11,7 @@ from app.models.organization import Membership
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 async def list_marketing_activity(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),

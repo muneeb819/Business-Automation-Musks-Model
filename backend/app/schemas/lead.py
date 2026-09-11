@@ -26,10 +26,15 @@ class LeadResponse(BaseModel):
     """Schema for lead in list responses."""
     id: UUID = Field(..., description="Lead ID")
     organization_id: UUID = Field(..., description="Organization ID")
+    company_id: Optional[UUID] = Field(None, description="Associated company ID")
+    contact_id: Optional[UUID] = Field(None, description="Associated contact ID")
+    source: LeadSource = Field(..., description="Lead source")
     status: LeadStatus = Field(..., description="Lead status")
     fit_score: float = Field(default=0, description="Lead fit score")
     lead_score: float = Field(default=0, description="Lead score")
     intent_score: float = Field(default=0, description="Intent score")
+    outreach_count: int = Field(default=0, description="Number of outreach attempts")
+    last_activity_date: Optional[datetime] = Field(None, description="Last activity timestamp")
     created_at: datetime = Field(..., description="Creation timestamp")
 
     class Config:
@@ -38,12 +43,10 @@ class LeadResponse(BaseModel):
 
 class LeadDetailResponse(LeadResponse):
     """Schema for detailed lead response."""
-    company_id: Optional[UUID] = Field(None, description="Associated company ID")
-    contact_id: Optional[UUID] = Field(None, description="Associated contact ID")
-    source: LeadSource = Field(..., description="Lead source")
     notes: Optional[str] = Field(None, description="Lead notes")
     tags: List[str] = Field(default_factory=list, description="Lead tags")
-    outreach_count: int = Field(default=0, description="Number of outreach attempts")
+    source_detail: Optional[str] = Field(None, description="Additional source details")
+    source_url: Optional[str] = Field(None, description="URL where lead was found")
     last_outreach_date: Optional[datetime] = Field(None, description="Last outreach timestamp")
     personalization_data: dict = Field(default_factory=dict, description="Personalization data")
 

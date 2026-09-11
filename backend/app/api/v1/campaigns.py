@@ -1,18 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from typing import Optional
 from uuid import UUID
 from datetime import datetime
 from app.core.database import get_db
 from app.core.deps import get_current_active_membership
 from app.models.campaign import Campaign
 from app.models.organization import Membership
+from app.schemas.campaign import CampaignCreate, CampaignUpdate
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 async def list_campaigns(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -73,15 +73,15 @@ async def get_campaign(
     return campaign
 
 
-@router.post("/")
+@router.post("")
 async def create_campaign(
-    campaign_data: dict,
+    campaign_data: CampaignCreate,
     membership: Membership = Depends(get_current_active_membership),
     db: AsyncSession = Depends(get_db),
 ):
     campaign = Campaign(
         organization_id=membership.organization_id,
-        **campaign_data
+        **campaign_data.model_dump(exclude_unset=True)
     )
     db.add(campaign)
     await db.flush()
@@ -91,7 +91,7 @@ async def create_campaign(
 @router.patch("/{campaign_id}")
 async def update_campaign(
     campaign_id: UUID,
-    campaign_data: dict,
+    campaign_data: CampaignUpdate,
     membership: Membership = Depends(get_current_active_membership),
     db: AsyncSession = Depends(get_db),
 ):
@@ -105,8 +105,7 @@ async def update_campaign(
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
 
-    update_data = {k: v for k, v in campaign_data.items() if k != "id"}
-    for field, value in update_data.items():
+    for field, value in campaign_data.model_dump(exclude_unset=True).items():
         setattr(campaign, field, value)
     campaign.updated_at = datetime.utcnow()
 

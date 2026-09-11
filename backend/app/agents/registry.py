@@ -1,93 +1,35 @@
 """
 Agent Registry - Factory pattern for creating and managing agents.
+
+This registry maps an agent type string to the real agent implementation so
+that API endpoints (outreach, supervisor, optimization, marketplace, ...) can
+instantiate the correct agent with full behaviour (persistence, hard-lock
+invariants, AI-backed responses) instead of mock stubs.
 """
 
-from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.agents.base import BaseAgent
+from app.agents.outreach_agent import OutreachAgent
+from app.agents.supervisor_agent import SupervisorAgent
+from app.agents.optimization_agent import OptimizationAgent
+from app.agents.marketplace_agent import MarketplaceAgent
+from app.agents.hunting_agent import HuntingAgent
+from app.agents.enrichment_agent import EnrichmentAgent
+from app.agents.marketing_agents import (
+    ContentAgent,
+    SocialMediaAgent,
+    SEOAgent,
+    PaidTrafficAgent,
+    EngagementAgent,
+)
+
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-class BaseAgent(ABC):
-    """Abstract base class for all agents."""
-
-    def __init__(
-        self,
-        organization_id: UUID,
-        agent_id: UUID,
-        name: str,
-        config: Optional[Dict[str, Any]] = None,
-    ):
-        self.organization_id = organization_id
-        self.agent_id = agent_id
-        self.name = name
-        self.config = config or {}
-
-    @abstractmethod
-    async def execute(self, payload: Dict[str, Any], db: AsyncSession) -> Dict[str, Any]:
-        """Execute agent action with given payload."""
-        pass
-
-
-class OutreachAgent(BaseAgent):
-    """Agent for handling outreach activities."""
-
-    async def execute(self, payload: Dict[str, Any], db: AsyncSession) -> Dict[str, Any]:
-        """Execute outreach action."""
-        action = payload.get("action")
-        lead_id = payload.get("lead_id")
-        content = payload.get("content")
-
-        logger.info(f"Outreach Agent executing action: {action} for lead: {lead_id}")
-
-        if action == "generate_proposal":
-            return {
-                "status": "success",
-                "message": "Proposal generated",
-                "lead_id": lead_id,
-            }
-        elif action == "send_outreach":
-            return {
-                "status": "success",
-                "message": "Outreach sent",
-                "lead_id": lead_id,
-                "channel": payload.get("channel", "email"),
-            }
-        elif action == "check_response":
-            has_reply = payload.get("has_reply", False)
-            if has_reply:
-                return {
-                    "status": "success",
-                    "message": "Reply detected. Lead handoff created.",
-                    "lead_id": lead_id,
-                    "handoff_created": True,
-                }
-            return {"status": "success", "lead_id": lead_id, "handoff_created": False}
-        else:
-            return {"status": "error", "message": f"Unknown action: {action}"}
-
-
-class MarketingAgent(BaseAgent):
-    """Agent for handling marketing activities."""
-
-    async def execute(self, payload: Dict[str, Any], db: AsyncSession) -> Dict[str, Any]:
-        """Execute marketing action."""
-        action = payload.get("action")
-        logger.info(f"Marketing Agent executing action: {action}")
-        return {"status": "success", "message": f"Marketing action executed: {action}"}
-
-
-class AnalyticsAgent(BaseAgent):
-    """Agent for handling analytics and reporting."""
-
-    async def execute(self, payload: Dict[str, Any], db: AsyncSession) -> Dict[str, Any]:
-        """Execute analytics action."""
-        action = payload.get("action")
-        logger.info(f"Analytics Agent executing action: {action}")
-        return {"status": "success", "message": f"Analytics action executed: {action}"}
 
 
 class AgentRegistry:
@@ -95,8 +37,16 @@ class AgentRegistry:
 
     _agents: Dict[str, type] = {
         "outreach": OutreachAgent,
-        "marketing": MarketingAgent,
-        "analytics": AnalyticsAgent,
+        "supervisor": SupervisorAgent,
+        "optimization": OptimizationAgent,
+        "marketplace": MarketplaceAgent,
+        "hunting": HuntingAgent,
+        "enrichment": EnrichmentAgent,
+        "content": ContentAgent,
+        "social_media": SocialMediaAgent,
+        "seo": SEOAgent,
+        "paid_traffic": PaidTrafficAgent,
+        "engagement": EngagementAgent,
     }
 
     @classmethod
@@ -125,7 +75,8 @@ class AgentRegistry:
         """
         if agent_type not in cls._agents:
             raise ValueError(
-                f"Unknown agent type: {agent_type}. Available types: {list(cls._agents.keys())}"
+                f"Unknown agent type: {agent_type}. "
+                f"Available types: {list(cls._agents.keys())}"
             )
 
         agent_class = cls._agents[agent_type]
@@ -133,6 +84,7 @@ class AgentRegistry:
             organization_id=organization_id,
             agent_id=agent_id,
             name=name,
+            agent_type=agent_type,
             config=config,
         )
 

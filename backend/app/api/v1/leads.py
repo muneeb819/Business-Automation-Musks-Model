@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime, timezone
+from datetime import datetime
 from app.core.database import get_db
 from app.core.deps import get_current_active_membership
 from app.models.lead import Lead, LeadStatus, LeadSource
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/", response_model=LeadListResponse)
+@router.get("", response_model=LeadListResponse)
 async def list_leads(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -104,7 +104,7 @@ async def get_lead(
         )
 
 
-@router.post("/", response_model=LeadResponse)
+@router.post("", response_model=LeadResponse)
 async def create_lead(
     lead_data: LeadCreate,
     membership: Membership = Depends(get_current_active_membership),
@@ -123,7 +123,7 @@ async def create_lead(
             personalization_data=lead_data.personalization_data or {},
             tags=lead_data.tags or [],
             notes=lead_data.notes,
-            discovery_date=datetime.now(timezone.utc),
+            discovery_date=datetime.utcnow(),
         )
         db.add(lead)
         await db.flush()
@@ -160,7 +160,7 @@ async def update_lead(
         update_data = lead_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(lead, field, value)
-        lead.updated_at = datetime.now(timezone.utc)
+        lead.updated_at = datetime.utcnow()
 
         await db.flush()
         logger.info(f"Updated lead: {lead_id}")
@@ -200,9 +200,9 @@ async def create_human_handoff(
 
         # Set lead to HUMAN_HANDOFF status - this is a HARD LOCK
         lead.status = LeadStatus.HUMAN_HANDOFF
-        lead.handoff_date = datetime.now(timezone.utc)
+        lead.handoff_date = datetime.utcnow()
         lead.assigned_user_id = membership.user_id
-        lead.updated_at = datetime.now(timezone.utc)
+        lead.updated_at = datetime.utcnow()
 
         # CRITICAL: Flush to ensure changes are written to session
         await db.flush()

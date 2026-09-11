@@ -332,10 +332,18 @@ class NotificationListResponse(BaseModel):
 # ─── App ─────────────────────────────────────────────────────────────────
 app = FastAPI(title="AI BD Platform API (Serverless)", version="1.0.0")
 
+# CORS origins: comma-separated env var, wildcard by default for the
+# same-origin Vercel deployment (the frontend proxies /api/* to this API).
+_cors_origins_raw = os.getenv(
+    "CORS_ORIGINS",
+    "https://business-automation-musks-model.vercel.app,http://localhost:3000",
+)
+_cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials="*" not in _cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -1111,6 +1119,21 @@ def mark_all_notifications_read(db=Depends(get_db), user=Depends(get_current_use
         raise HTTPException(500, f"Failed to mark notifications: {str(e)}")
 
 # ─── Supervisor (Mock) ───────────────────────────────────────────────────
+class SupervisorQuery(BaseModel):
+    question: str
+
+
+@app.post("/api/v1/supervisor/query")
+def supervisor_query(q: SupervisorQuery, user=Depends(get_current_user)):
+    return {
+        "question": q.question,
+        "answer": (
+            f"[Serverless Supervisor] Received: '{q.question}'. "
+            f"Full agent orchestration requires the deployed backend with workers."
+        ),
+    }
+
+
 @app.post("/api/v1/supervisor/command")
 def supervisor_command(cmd: SupervisorCommand, user=Depends(get_current_user)):
     return {

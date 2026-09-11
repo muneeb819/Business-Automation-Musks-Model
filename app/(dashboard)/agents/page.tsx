@@ -1,69 +1,92 @@
-import { useState, useEffect } from 'react';
-import { formatDate } from '../../lib/types';
+'use client';
+
+import Link from 'next/link';
+import { useApi } from '../../../lib/useApi';
+import {
+  PageHeader,
+  Badge,
+  statusColor,
+  LoadingState,
+  EmptyState,
+  ErrorState,
+} from '../../../components/ui';
+import type { Agent } from '../../../lib/types';
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    // Simulate fetching agents
-    setTimeout(() => {
-      setAgents([
-        {
-          id: '1',
-          name: 'Alex Morgan',
-          role: 'Senior Outreach Specialist',
-          status: 'active',
-          last_run: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: '2',
-          name: 'Taylor Kim',
-          role: 'Content Creator',
-          status: 'active',
-          last_run: new Date(Date.now() - 43200000).toISOString(),
-        },
-        {
-          id: '3',
-          name: 'Jordan Lee',
-          role: 'Paid Traffic Manager',
-          status: 'active',
-          last_run: new Date(Date.now() - 21600000).toISOString(),
-        },
-      ]);
-      setLoading(false);
-    }, 500);
-  }, []);
-
-  if (loading) return <div className="text-center py-8">Loading agents...</div>;
+  const { data: agents, loading, error } = useApi<Agent[]>('/agents');
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h1 className="text-2xl font-bold mb-4">Agents</h1>
-      <p className="text-gray-600 mb-6">Manage your team of AI-powered agents</p>
-      
-      <div className="space-y-4">
-        {agents.map(agent => (
-          <div key={agent.id} className="border-b border-gray-200 pb-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-                {agent.name.charAt(0)}
-              </div>
-              <div>
-                <h3 className="font-semibold">{agent.name}</h3>
-                <p className="text-sm text-gray-600">{agent.role}</p>
-                <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${agent.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {agent.status}
-                </span>
-              </div>
-            </div>
-            <div className="mt-2 text-sm text-gray-500">
-              Last run: {formatDate(agent.last_run)}
-            </div>
-          </div>
-        ))}
-      </div>
+    <div>
+      <PageHeader
+        title="Agents"
+        description="The autonomous workers that power the business development pipeline."
+      />
+
+      {error && <ErrorState message={error} />}
+      {loading ? (
+        <LoadingState />
+      ) : !agents || agents.length === 0 ? (
+        <EmptyState
+          title="No agents configured"
+          description="Seed the platform to provision your default agent team."
+        />
+      ) : (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Health
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Runs
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  &nbsp;
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {agents.map((agent: Agent) => (
+                <tr key={agent.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    {agent.name}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {agent.agent_type.replace(/_/g, ' ')}
+                  </td>
+                  <td className="px-6 py-4">
+                    <Badge color={statusColor(agent.status)}>{agent.status}</Badge>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {agent.health_score.toFixed(0)}%
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {agent.successful_runs}/{agent.total_runs} succeeded
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <Link
+                      href={`/agents/${agent.id}`}
+                      className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

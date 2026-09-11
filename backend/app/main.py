@@ -16,6 +16,8 @@ from app.api.v1 import (
     marketplace,
     outreach,
     optimization,
+    notifications,
+    organization,
 )
 
 
@@ -33,10 +35,12 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+_cors_origins = settings.get_cors_origins()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    # Credentials cannot be used together with a wildcard origin.
+    allow_credentials="*" not in _cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -55,6 +59,8 @@ app.include_router(marketplace.router, prefix=f"{prefix}/marketplace", tags=["Ma
 app.include_router(outreach.router, prefix=f"{prefix}/outreach", tags=["Outreach"])
 app.include_router(dashboard.router, prefix=f"{prefix}/dashboard", tags=["Dashboard"])
 app.include_router(optimization.router, prefix=f"{prefix}/optimization", tags=["Optimization"])
+app.include_router(notifications.router, prefix=f"{prefix}/notifications", tags=["Notifications"])
+app.include_router(organization.router, prefix=f"{prefix}/organization", tags=["Organization"])
 
 
 @app.get("/health")

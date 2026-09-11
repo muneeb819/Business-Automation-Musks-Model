@@ -2,30 +2,8 @@ from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
-from enum import Enum
 
-
-class ApprovalStatus(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    EXPIRED = "expired"
-    EXECUTING = "executing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    ROLLED_BACK = "rolled_back"
-
-
-class ApprovalCategory(str, Enum):
-    AGENT_BEHAVIOR = "agent_behavior"
-    BUG_FIX = "bug_fix"
-    TYPO = "typo"
-    UI_UX = "ui_ux"
-    CSS = "css"
-    SYSTEM_CONFIG = "system_config"
-    OUTREACH = "outreach"
-    MARKETING = "marketing"
-    OTHER = "other"
+from app.models.approval import ApprovalStatus, ApprovalCategory
 
 
 class ApprovalCreate(BaseModel):
@@ -49,8 +27,8 @@ class ApprovalResponse(BaseModel):
     affected_system: Optional[str] = None
     risk_level: str
     status: ApprovalStatus
-    created_at: str
-    resolved_at: Optional[str] = None
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
